@@ -9,6 +9,14 @@ interface LandingPageProps {
 export default function LandingPage({ images }: LandingPageProps) {
   const [activeService, setActiveService] = useState(0);
 
+  const scrollToSection = (e: React.MouseEvent<HTMLAnchorElement | HTMLButtonElement>, id: string) => {
+    e.preventDefault();
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   const services = [
     {
       icon: Heart,
@@ -49,14 +57,14 @@ export default function LandingPage({ images }: LandingPageProps) {
       {/* Navigation */}
       <nav className="fixed top-0 left-0 right-0 bg-white/95 backdrop-blur-sm shadow-sm z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-2 cursor-pointer" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}>
             <Heart className="w-6 h-6 text-brand fill-brand" />
             <span className="text-2xl font-bold tracking-tight text-stone-900">Clewis Faithful Care</span>
           </div>
           <div className="hidden md:flex space-x-8 text-sm font-sans">
-            <a href="#services" className="text-stone-600 hover:text-brand transition-colors">Services</a>
-            <a href="#about" className="text-stone-600 hover:text-brand transition-colors">About</a>
-            <a href="#contact" className="text-stone-600 hover:text-brand transition-colors">Contact</a>
+            <a href="#services" onClick={(e) => scrollToSection(e, 'services')} className="text-stone-600 hover:text-brand transition-colors">Services</a>
+            <a href="#about" onClick={(e) => scrollToSection(e, 'about')} className="text-stone-600 hover:text-brand transition-colors">About</a>
+            <a href="#contact" onClick={(e) => scrollToSection(e, 'contact')} className="text-stone-600 hover:text-brand transition-colors">Contact</a>
           </div>
           <a href="tel:8323733161" className="text-white px-6 py-2.5 rounded-full text-sm font-medium hover:shadow-lg transition-all bg-brand font-sans">
             (832) 373-3161
@@ -82,11 +90,17 @@ export default function LandingPage({ images }: LandingPageProps) {
                 Personalized in-home support guided by Christian values, helping seniors thrive with dignity, comfort, and genuine companionship.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
-                <button className="text-white px-8 py-4 rounded-full text-lg font-medium hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center group bg-brand font-sans">
+                <button 
+                  onClick={(e) => scrollToSection(e, 'contact')}
+                  className="text-white px-8 py-4 rounded-full text-lg font-medium hover:shadow-xl transition-all transform hover:-translate-y-0.5 flex items-center justify-center group bg-brand font-sans"
+                >
                   Schedule Free Consultation
                   <ChevronRight className="ml-2 w-5 h-5 group-hover:translate-x-1 transition-transform" />
                 </button>
-                <button className="border-2 border-stone-300 text-stone-700 px-8 py-4 rounded-full text-lg font-medium hover:border-brand transition-all font-sans">
+                <button 
+                  onClick={(e) => scrollToSection(e, 'about')}
+                  className="border-2 border-stone-300 text-stone-700 px-8 py-4 rounded-full text-lg font-medium hover:border-brand transition-all font-sans"
+                >
                   Learn More
                 </button>
               </div>
@@ -187,35 +201,47 @@ export default function LandingPage({ images }: LandingPageProps) {
               <div
                 key={idx}
                 onClick={() => setActiveService(idx)}
-                className={`bg-white p-6 rounded-2xl cursor-pointer transition-all duration-300 border-2 overflow-hidden ${
-                  activeService === idx
-                    ? 'shadow-2xl transform scale-105 border-brand'
-                    : 'border-stone-200 hover:border-stone-300 hover:shadow-lg'
-                }`}
+                className={`
+                  relative overflow-hidden p-6 rounded-2xl transition-all duration-500 ease-out cursor-pointer flex flex-col border
+                  ${activeService === idx
+                    ? 'bg-white border-brand/50 shadow-[0_25px_50px_-12px_rgba(200,111,86,0.3)] -translate-y-3 scale-105 z-10 ring-1 ring-brand/20'
+                    : 'bg-white border-stone-200 shadow-sm hover:shadow-xl hover:shadow-brand/5 hover:-translate-y-2 hover:border-brand/30 hover:scale-[1.02]'}
+                `}
               >
+                {/* 3D Lighting Gradient Overlay */}
+                <div className={`absolute inset-0 pointer-events-none transition-opacity duration-500 ${activeService === idx ? 'opacity-100' : 'opacity-0'}`}
+                     style={{ background: 'linear-gradient(180deg, rgba(255,255,255,0) 0%, rgba(200,111,86,0.03) 100%)' }}></div>
+                
                 {/* Image or Icon Render */}
                 {images.services[idx] ? (
-                  <div className="w-full aspect-[4/3] mb-4 rounded-xl overflow-hidden bg-stone-100">
+                  <div className={`w-full aspect-[4/3] mb-4 rounded-xl overflow-hidden bg-stone-100 shadow-inner transition-transform duration-500 ${activeService === idx ? 'scale-100' : 'scale-95 opacity-90'}`}>
                     <img src={images.services[idx]!} alt={service.title} className="w-full h-full object-cover animate-in fade-in duration-500" />
                   </div>
                 ) : (
                   <service.icon 
-                    className={`w-12 h-12 mb-4 transition-colors duration-300 ${activeService === idx ? 'text-brand' : 'text-stone-400'}`} 
+                    className={`w-12 h-12 mb-4 transition-all duration-300 transform ${activeService === idx ? 'text-brand scale-110 drop-shadow-md' : 'text-stone-400'}`} 
                   />
                 )}
                 
-                <h3 className="text-xl font-bold mb-3 text-stone-900">{service.title}</h3>
-                <p className="text-stone-600 mb-4 text-sm leading-relaxed">{service.description}</p>
-                {activeService === idx && (
-                  <ul className="space-y-2">
-                    {service.features.map((feature, i) => (
-                      <li key={i} className="flex items-start text-sm text-stone-700 font-sans">
-                        <Check className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-brand" />
-                        {feature}
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <h3 className="text-xl font-bold mb-3 text-stone-900 relative z-10">{service.title}</h3>
+                <p className="text-stone-600 mb-4 text-sm leading-relaxed relative z-10">{service.description}</p>
+                
+                {/* Expandable Content with smooth height transition */}
+                <div className={`grid transition-[grid-template-rows] duration-500 ease-in-out ${activeService === idx ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}>
+                  <div className="overflow-hidden">
+                    <div className="pt-2 space-y-2 border-t border-brand/10 mt-2">
+                      {service.features.map((feature, i) => (
+                        <li key={i} className="flex items-start text-sm text-stone-700 font-sans">
+                          <Check className="w-4 h-4 mr-2 mt-0.5 flex-shrink-0 text-brand" />
+                          {feature}
+                        </li>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Selection Indicator */}
+                <div className={`absolute bottom-0 left-0 right-0 h-1 bg-brand transform transition-transform duration-500 ${activeService === idx ? 'scale-x-100' : 'scale-x-0'}`}></div>
               </div>
             ))}
           </div>
@@ -240,7 +266,7 @@ export default function LandingPage({ images }: LandingPageProps) {
             </div>
             <div className="grid grid-cols-2 gap-4">
               {values.map((value, idx) => (
-                <div key={idx} className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-xl transition-shadow">
+                <div key={idx} className="bg-white p-6 rounded-2xl shadow-lg hover:shadow-2xl hover:-translate-y-1 transition-all duration-300">
                   <value.icon className="w-8 h-8 mb-3 text-brand" />
                   <h3 className="font-bold text-stone-900 mb-2 font-sans">{value.title}</h3>
                   <p className="text-sm text-stone-600 leading-relaxed">{value.text}</p>
@@ -277,9 +303,9 @@ export default function LandingPage({ images }: LandingPageProps) {
                 number: "03"
               }
             ].map((item, idx) => (
-              <div key={idx} className="relative">
-                <div className="text-7xl font-bold absolute -top-6 -left-4 text-brand-light">{item.number}</div>
-                <div className="relative bg-stone-50 p-8 rounded-2xl hover:bg-gradient-to-br hover:from-orange-50 hover:to-amber-50 transition-all duration-300">
+              <div key={idx} className="relative group">
+                <div className="text-7xl font-bold absolute -top-6 -left-4 text-brand-light transition-colors group-hover:text-brand/20">{item.number}</div>
+                <div className="relative bg-stone-50 p-8 rounded-2xl border border-transparent hover:border-brand/10 hover:bg-white hover:shadow-2xl hover:-translate-y-2 transition-all duration-300">
                   <h3 className="text-xl font-bold text-stone-900 mb-4">{item.title}</h3>
                   <p className="text-stone-600 leading-relaxed">{item.description}</p>
                 </div>
@@ -298,12 +324,12 @@ export default function LandingPage({ images }: LandingPageProps) {
           </p>
           
           <div className="grid md:grid-cols-3 gap-6 mb-12">
-            <a href="tel:8323733161" className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/20 transition-all">
+            <a href="tel:8323733161" className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/20 transition-all hover:-translate-y-1 hover:shadow-lg">
               <Phone className="w-8 h-8 mx-auto mb-3" />
               <p className="font-medium mb-1 font-sans">Call Us</p>
               <p className="text-sm opacity-90">(832) 373-3161</p>
             </a>
-            <a href="mailto:contact@clewisfaithfulcare.com" className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/20 transition-all">
+            <a href="mailto:contact@clewisfaithfulcare.com" className="bg-white/10 backdrop-blur-sm p-6 rounded-2xl hover:bg-white/20 transition-all hover:-translate-y-1 hover:shadow-lg">
               <Mail className="w-8 h-8 mx-auto mb-3" />
               <p className="font-medium mb-1 font-sans">Email Us</p>
               <p className="text-sm opacity-90">Get in touch</p>
@@ -315,7 +341,10 @@ export default function LandingPage({ images }: LandingPageProps) {
             </div>
           </div>
 
-          <button className="px-10 py-4 rounded-full text-lg font-bold hover:shadow-2xl transition-all transform hover:-translate-y-1 bg-white text-brand font-sans">
+          <button 
+            onClick={(e) => scrollToSection(e, 'contact')} // Just scrolls to top of this section effectively, or could open a modal in future
+            className="px-10 py-4 rounded-full text-lg font-bold hover:shadow-[0_10px_20px_-5px_rgba(0,0,0,0.2)] transition-all transform hover:-translate-y-1 bg-white text-brand font-sans"
+          >
             Schedule Free Consultation
           </button>
 
@@ -339,9 +368,9 @@ export default function LandingPage({ images }: LandingPageProps) {
             <div>
               <h4 className="text-white font-bold mb-4 font-sans">Quick Links</h4>
               <ul className="space-y-2 text-sm">
-                <li><a href="#services" className="hover:text-brand transition-colors">Services</a></li>
-                <li><a href="#about" className="hover:text-brand transition-colors">About Us</a></li>
-                <li><a href="#contact" className="hover:text-brand transition-colors">Contact</a></li>
+                <li><a href="#services" onClick={(e) => scrollToSection(e, 'services')} className="hover:text-brand transition-colors">Services</a></li>
+                <li><a href="#about" onClick={(e) => scrollToSection(e, 'about')} className="hover:text-brand transition-colors">About Us</a></li>
+                <li><a href="#contact" onClick={(e) => scrollToSection(e, 'contact')} className="hover:text-brand transition-colors">Contact</a></li>
               </ul>
             </div>
             <div>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { GoogleGenAI } from "@google/genai";
-import { Loader2, Image as ImageIcon, Wand2, Key } from 'lucide-react';
+import { Loader2, Image as ImageIcon, Wand2, Key, Upload } from 'lucide-react';
 
 interface ImageGeneratorProps {
   onImageGenerated: (type: 'hero' | 'service', index: number | null, base64: string) => void;
@@ -39,6 +39,10 @@ const PROMPTS = {
 export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps) {
   const [loadingState, setLoadingState] = useState<{ type: string; index: number | null }>({ type: '', index: null });
   const [error, setError] = useState<string | null>(null);
+  
+  // Refs for file inputs
+  const heroInputRef = useRef<HTMLInputElement>(null);
+  const serviceInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const changeApiKey = async () => {
     try {
@@ -49,6 +53,21 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
     } catch (e) {
       console.error("Failed to open key selector", e);
     }
+  };
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: 'hero' | 'service', index: number | null) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const base64 = reader.result as string;
+      onImageGenerated(type, index, base64);
+    };
+    reader.readAsDataURL(file);
+    
+    // Reset input
+    e.target.value = '';
   };
 
   const generateImage = async (type: 'hero' | 'service', index: number | null, prompt: string, aspectRatio: string = "1:1") => {
@@ -63,7 +82,6 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
       }
       
       // 2. Initialize Client
-      // Always create a new instance to grab the latest key from process.env
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       // 3. Call API
@@ -99,7 +117,6 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
       console.error(e);
       let errorMessage = e.message || "Failed to generate image. Please try again.";
       
-      // Handle specific auth/model errors by prompting for key again
       if (errorMessage.includes("Requested entity was not found") || errorMessage.includes("403") || errorMessage.includes("404")) {
         errorMessage = "Access denied or model not found. Please ensure you are using a paid API Key.";
         const aistudio = (window as any).aistudio;
@@ -122,7 +139,7 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
             <Wand2 className="w-6 h-6 text-brand" />
-            <h2 className="text-2xl font-bold text-stone-900 font-serif">Asset Generator</h2>
+            <h2 className="text-2xl font-bold text-stone-900 font-serif">Asset Manager</h2>
           </div>
           <button 
              onClick={changeApiKey}
@@ -134,9 +151,9 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
         </div>
         
         <p className="mb-6 text-stone-600 max-w-2xl">
-          Use Gemini 3 Pro (Nano Banana Pro) to generate custom assets for the site. 
+          Use the <strong>Generate</strong> buttons to create new assets with Gemini Nano Banana Pro, or use the <strong>Upload</strong> buttons to insert the specific photos you have already created.
           <span className="block mt-2 text-sm bg-amber-50 text-amber-800 p-2 rounded border border-amber-200">
-             Note: This requires a paid API key from a Google Cloud Project with the API enabled.
+             Note: Generation requires a paid API key. Uploading your own files is free.
           </span>
         </p>
 
@@ -154,19 +171,35 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
               <ImageIcon className="w-4 h-4" /> Hero Section
             </h3>
             <p className="text-xs text-stone-500 mb-4 italic line-clamp-3">{PROMPTS.hero.prompt}</p>
-            <button
-              onClick={() => generateImage('hero', null, PROMPTS.hero.prompt, PROMPTS.hero.aspectRatio)}
-              disabled={!!loadingState.type}
-              className="w-full flex items-center justify-center gap-2 bg-stone-900 text-white py-3 rounded-lg hover:bg-stone-800 transition-colors disabled:opacity-50"
-            >
-              {loadingState.type === 'hero' ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Generating...
-                </>
-              ) : (
-                'Generate Hero Image'
-              )}
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => generateImage('hero', null, PROMPTS.hero.prompt, PROMPTS.hero.aspectRatio)}
+                disabled={!!loadingState.type}
+                className="flex-1 flex items-center justify-center gap-2 bg-stone-900 text-white py-3 rounded-lg hover:bg-stone-800 transition-colors disabled:opacity-50"
+              >
+                {loadingState.type === 'hero' ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" /> Generating...
+                  </>
+                ) : (
+                  'Generate'
+                )}
+              </button>
+              <input 
+                type="file" 
+                ref={heroInputRef}
+                className="hidden" 
+                accept="image/*"
+                onChange={(e) => handleFileUpload(e, 'hero', null)}
+              />
+              <button
+                onClick={() => heroInputRef.current?.click()}
+                title="Upload your own hero image"
+                className="px-4 py-3 rounded-lg border border-stone-300 text-stone-600 hover:bg-stone-50 hover:border-stone-400 hover:text-brand transition-all"
+              >
+                <Upload className="w-5 h-5" />
+              </button>
+            </div>
           </div>
 
           {/* Services Generator */}
@@ -178,15 +211,31 @@ export default function ImageGenerator({ onImageGenerated }: ImageGeneratorProps
               {PROMPTS.services.map((service, idx) => (
                 <div key={idx} className="p-3 border border-stone-100 rounded-lg bg-stone-50">
                   <span className="text-sm font-medium text-stone-700 block mb-2">{service.title}</span>
-                  <button
-                    onClick={() => generateImage('service', idx, service.prompt, service.aspectRatio)}
-                    disabled={!!loadingState.type}
-                    className="w-full text-xs flex items-center justify-center gap-1 bg-white border border-stone-300 text-stone-700 py-2 rounded hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
-                  >
-                     {loadingState.type === 'service' && loadingState.index === idx ? (
-                      <Loader2 className="w-3 h-3 animate-spin" />
-                    ) : 'Generate'}
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => generateImage('service', idx, service.prompt, service.aspectRatio)}
+                      disabled={!!loadingState.type}
+                      className="flex-1 text-xs flex items-center justify-center gap-1 bg-white border border-stone-300 text-stone-700 py-2 rounded hover:border-brand hover:text-brand transition-colors disabled:opacity-50"
+                    >
+                       {loadingState.type === 'service' && loadingState.index === idx ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : 'Generate'}
+                    </button>
+                    <input 
+                      type="file" 
+                      ref={(el) => { if (serviceInputRefs.current) serviceInputRefs.current[idx] = el; }}
+                      className="hidden" 
+                      accept="image/*"
+                      onChange={(e) => handleFileUpload(e, 'service', idx)}
+                    />
+                    <button
+                      onClick={() => serviceInputRefs.current[idx]?.click()}
+                      title="Upload your own image"
+                      className="px-2 py-2 rounded border border-stone-300 text-stone-600 hover:bg-stone-50 hover:border-stone-400 hover:text-brand transition-all"
+                    >
+                      <Upload className="w-4 h-4" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
